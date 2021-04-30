@@ -123,6 +123,7 @@ class SceneActivity : ArActivity<ActivitySceneBinding>(ActivitySceneBinding::inf
             val session = arSceneView.session
             val camera = arSceneView.arFrame?.camera ?: return@setOnClickListener
             if (session == null || camera.trackingState != TRACKING) return@setOnClickListener
+            // Create a Node on the arSceneView
             createNodeAndAddToScene(anchor = { session.createAnchor(Nodes.defaultPose(arSceneView)) }, focus = false)
         }
 

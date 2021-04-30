@@ -59,9 +59,12 @@ sealed class Nodes(
         fun Any.newId(): Long = IDS.getOrElse(this::class, { AtomicLong().also { IDS[this::class] = it } }).incrementAndGet()
 
         fun defaultPose(ar: ArSceneView): Pose {
+            // Place the object at default position and return it for creating the anchor
+            // Get the center of the display
             val centerX = ar.width / 2F
             val centerY = ar.height / 2F
             val hits = ar.arFrame?.hitTest(centerX, centerY)
+            // Get the hit position on the plane
             val planeHitPose = hits?.firstOrNull {
                 (it.trackable as? Plane)?.isPoseInPolygon(it.hitPose) == true && it.distance <= PLANE_ANCHORING_DISTANCE
             }?.hitPose
@@ -111,6 +114,7 @@ sealed class Nodes(
     }
 
     open fun attach(anchor: Anchor, scene: Scene, focus: Boolean = false) {
+        // Set the parent of the anchor to be the scene
         setParent(AnchorNode(anchor).apply { setParent(scene) })
         if (focus) {
             transformationSystem.focusNode(this)
@@ -477,13 +481,15 @@ class Drawing(
 
 }
 
+/*
+Link is the class for importing models from URL
+ */
 class Link(
     context: Context,
     uri: Uri,
     coordinator: Coordinator,
     settings: Settings
 ) : Nodes("Link", coordinator, settings) {
-
     companion object {
 
         fun warmup(_context: Context, uri: Uri): CompletableFuture<ModelRenderable> {
