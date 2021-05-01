@@ -23,6 +23,7 @@ package net.named_data.jndn.security.identity;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.util.Log;
 
 import net.named_data.jndn.KeyLocator;
 import net.named_data.jndn.Name;
@@ -594,8 +595,11 @@ public class AndroidSqlite3IdentityStorage extends Sqlite3IdentityStorageBase {
   setDefaultKeyNameForIdentity(Name keyName, Name identityNameCheck)
     throws SecurityException
   {
-    checkSetDefaultKeyNameForIdentity(keyName, identityNameCheck);
-
+    try {
+      checkSetDefaultKeyNameForIdentity(keyName, identityNameCheck);
+    } catch (Exception e) {
+      Log.e("Error", e.getMessage());
+    }
     String keyId = keyName.get(-1).toEscapedString();
     Name identityName = keyName.getPrefix(-1);
 
