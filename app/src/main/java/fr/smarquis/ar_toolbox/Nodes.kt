@@ -424,11 +424,11 @@ class Andy(
         var andyRenderable: ModelRenderable? = null
         private var nextAnimation = 0
         private var animator: ModelAnimator? = null
-        private val hatNode: Node? = null
         private var hatRenderable: ModelRenderable? = null
         private var face: Face? = null
 
         // TODO: apply the animation to cap
+        private val hatNode: Node? = null
         private val andy: SkeletonNode? = null
 
         private const val TAG = "NDN-Animation-Client"
@@ -556,7 +556,7 @@ class Andy(
         override fun onData(interest: Interest, data: Data) {
             Log.i(TAG, "Got data packet with name " + data.name.toUri())
             Log.i(TAG, "Got data packet with Content " + data.content)
-            val metaInfoName = Name(producerName + "/andy/metadata")
+            val metaInfoName = Name("$producerName/andy/metadata")
             if (metaInfoName.isPrefixOf(data.name)) {
                 lastAnimationName = data.content.toString()
             }
@@ -577,7 +577,7 @@ class Andy(
         override fun onData(interest: Interest, data: Data) {
             Log.i(TAG, "Got data packet with name " + data.name.toUri())
             Log.i(TAG, "Got data packet with Content " + data.content)
-            val animationName = Name(producerName + "/andy/animation")
+            val animationName = Name("$producerName/andy/animation")
             if (animationName.isPrefixOf(data.name)) {
                 currentAnimation = data.content.toString()
             }
@@ -646,7 +646,7 @@ class Andy(
                 renderable = currentRenderable
                 andyRenderable = currentRenderable
                 val data = andyRenderable?.getAnimationData(nextAnimation)
-                nextAnimation = (nextAnimation + 1) % andyRenderable!!.getAnimationDataCount()
+                nextAnimation = (nextAnimation + 1) % andyRenderable!!.animationDataCount
                 animator = ModelAnimator(data, andyRenderable)
                 animator!!.start()
             }
@@ -660,7 +660,7 @@ class Andy(
 
     override fun onTap(hitTestResult: HitTestResult?, motionEvent: MotionEvent?) {
         super.onTap(hitTestResult, motionEvent)
-        if (animator == null || !animator?.isRunning()!!) {
+        if (animator == null || !animator?.isRunning!!) {
             val data = andyRenderable!!.getAnimationData(nextAnimation)
             nextAnimation = (nextAnimation + 1) % andyRenderable!!.animationDataCount
             animator = ModelAnimator(data, andyRenderable)
