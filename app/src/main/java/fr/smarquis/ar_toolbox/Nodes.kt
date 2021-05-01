@@ -44,6 +44,7 @@ import net.named_data.jndn.util.Blob
 import net.named_data.jndn.util.SegmentFetcher
 import java.nio.ByteBuffer
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.reflect.KClass
@@ -609,6 +610,7 @@ class Andy(
                 val maxTimeOut = 10000
                 options.maxTimeout = maxTimeOut
                 while (true) {
+                    Log.i(TAG, "New animation request")
                     while (lastAnimationName == null) {
                         val metadataName = Name("$producerName/andy/metadata").appendTimestamp(
                             System.currentTimeMillis()
@@ -616,7 +618,7 @@ class Andy(
                         face!!.expressInterest(metadataName, metadataResults, metadataResults)
                         face!!.processEvents()
                         // We need to sleep for a few milliseconds so we don't use 100% of the CPU.
-                        sleep(100)
+                        sleep(300)
                     }
 
                     // Get the animation with the lastAnimation name
@@ -625,6 +627,8 @@ class Andy(
                     val animationResults = AnimationResults()
                     face!!.expressInterest(animationDataName, animationResults, animationResults)
                     face!!.processEvents()
+                    sleep(500)
+                    lastAnimationName = null
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "exception: " + e.message)
@@ -645,10 +649,10 @@ class Andy(
             .thenAccept { currentRenderable ->
                 renderable = currentRenderable
                 andyRenderable = currentRenderable
-                val data = andyRenderable?.getAnimationData(nextAnimation)
-                nextAnimation = (nextAnimation + 1) % andyRenderable!!.animationDataCount
-                animator = ModelAnimator(data, andyRenderable)
-                animator!!.start()
+//                val data = andyRenderable?.getAnimationData(nextAnimation)
+//                nextAnimation = (nextAnimation + 1) % andyRenderable!!.animationDataCount
+//                animator = ModelAnimator(data, andyRenderable)
+//                animator!!.start()
             }
         ModelRenderable.builder()
             .setSource(context.applicationContext, R.raw.baseball_cap)
@@ -661,8 +665,8 @@ class Andy(
     override fun onTap(hitTestResult: HitTestResult?, motionEvent: MotionEvent?) {
         super.onTap(hitTestResult, motionEvent)
         if (animator == null || !animator?.isRunning!!) {
-            val data = andyRenderable!!.getAnimationData(nextAnimation)
-            nextAnimation = (nextAnimation + 1) % andyRenderable!!.animationDataCount
+            val data = andyRenderable!!.getAnimationData(currentAnimation!!.toInt() )
+//                nextAnimation = (nextAnimation + 1) % andyRenderable!!.animationDataCount
             animator = ModelAnimator(data, andyRenderable)
             animator!!.start()
         }
