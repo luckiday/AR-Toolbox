@@ -431,7 +431,7 @@ class Andy(
         // TODO: apply the animation to cap
         private val andy: SkeletonNode? = null
 
-        private const val TAG = "H264Client"
+        private const val TAG = "NDN-Animation-Client"
         private var producerName = "/edge"
         private var lastAnimationName: String? = null
         private var currentAnimation: String? = null
