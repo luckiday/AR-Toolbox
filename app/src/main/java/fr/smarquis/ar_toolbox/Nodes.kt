@@ -35,6 +35,7 @@ import com.google.ar.sceneform.rendering.*
 import com.google.ar.sceneform.rendering.MaterialFactory.makeOpaqueWithColor
 import com.google.ar.sceneform.ux.BaseTransformableNode
 import com.google.ar.sceneform.ux.TransformableNode
+import com.google.ar.sceneform.animation.ModelAnimator
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.reflect.KClass
@@ -369,12 +370,22 @@ class Andy(
     coordinator: Coordinator,
     settings: Settings
 ) : Nodes("Andy", coordinator, settings) {
+    var andyRenderable : ModelRenderable? = null
+    private var nextAnimation = 0
+    private var animator: ModelAnimator? = null
 
     init {
         ModelRenderable.builder()
-            .setSource(context.applicationContext, R.raw.andy)
+            .setSource(context.applicationContext, R.raw.andy_dance)
             .build()
-            .thenAccept { renderable = it }
+            .thenAccept {currentRenderable ->
+                renderable = currentRenderable
+                andyRenderable = currentRenderable
+                val data = andyRenderable?.getAnimationData(nextAnimation)
+                nextAnimation = (nextAnimation + 1) % andyRenderable!!.getAnimationDataCount()
+                animator = ModelAnimator(data, andyRenderable)
+                animator!!.start()
+            }
     }
 
 }
