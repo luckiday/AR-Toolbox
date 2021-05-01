@@ -373,6 +373,8 @@ class Andy(
     var andyRenderable : ModelRenderable? = null
     private var nextAnimation = 0
     private var animator: ModelAnimator? = null
+    private val hatNode: Node? = null
+    private var hatRenderable: ModelRenderable? = null
 
     init {
         ModelRenderable.builder()
@@ -386,8 +388,23 @@ class Andy(
                 animator = ModelAnimator(data, andyRenderable)
                 animator!!.start()
             }
+        ModelRenderable.builder()
+            .setSource(context.applicationContext, R.raw.baseball_cap)
+            .build()
+            .thenAccept {currentRenderable ->
+                hatRenderable = currentRenderable
+            }
     }
 
+    override fun onTap(hitTestResult: HitTestResult?, motionEvent: MotionEvent?) {
+        super.onTap(hitTestResult, motionEvent)
+        if (animator == null || !animator?.isRunning()!!) {
+            val data = andyRenderable!!.getAnimationData(nextAnimation)
+            nextAnimation = (nextAnimation + 1) % andyRenderable!!.animationDataCount
+            animator = ModelAnimator(data, andyRenderable)
+            animator!!.start()
+        }
+    }
 }
 
 typealias CollisionPlane = com.google.ar.sceneform.collision.Plane
