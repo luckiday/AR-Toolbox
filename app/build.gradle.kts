@@ -62,6 +62,7 @@ dependencies {
     implementation(Google.Ar.sceneform.rendering)
     implementation(Google.Ar.sceneform.sceneformBase)
     implementation(Google.Ar.sceneform.ux)
+    implementation(Google.Ar.sceneform.animation)
 
     testImplementation(Testing.junit4)
 
