@@ -44,9 +44,7 @@ import net.named_data.jndn.util.Blob
 import net.named_data.jndn.util.SegmentFetcher
 import java.nio.ByteBuffer
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.reflect.KClass
 import kotlin.text.Typography.leftGuillemete
 import kotlin.text.Typography.rightGuillemete
@@ -428,9 +426,11 @@ class Andy(
         private var hatRenderable: ModelRenderable? = null
         private var face: Face? = null
 
-        // TODO: apply the animation to cap
-        private val hatNode: Node? = null
-        private val andy: SkeletonNode? = null
+        /* Apply the animation to cap */
+        private var hatNode: Node? = null
+        private var andy: SkeletonNode? = null
+        private const val HAT_BONE_NAME = "hat_point"
+
 
         /* Loading the animation command from NDN network */
         private const val TAG = "NDN-Animation-Client"
@@ -550,7 +550,7 @@ class Andy(
             result.flip()
             return result
         }
-        private val useNDN = false
+        private const val useNDN = false
     }
 
     private inner class MetadataResults : OnData, OnTimeout,
@@ -661,9 +661,51 @@ class Andy(
             }
     }
 
+    private fun traverseChildren(node: Node) {
+        val childrenNodes = node.children
+        Log.i(TAG, "Children node name ${node.name}" )
+        for (n in childrenNodes){
+            traverseChildren(n)
+        }
+    }
+
     override fun onTap(hitTestResult: HitTestResult?, motionEvent: MotionEvent?) {
         super.onTap(hitTestResult, motionEvent)
         if (animator == null || !animator?.isRunning!!) {
+            andy = SkeletonNode()
+            andy!!.renderable = this.renderable
+            hatNode = Node()
+            // Attach a node to the bone.  This node takes the internal scale of the bone, so any
+            // renderables should be added to child nodes with the world pose reset.
+            // This also allows for tweaking the position relative to the bone.
+
+            // Attach a node to the bone.  This node takes the internal scale of the bone, so any
+            // renderables should be added to child nodes with the world pose reset.
+            // This also allows for tweaking the position relative to the bone.
+            val boneNode = Node()
+            boneNode.setParent(andy)
+            andy!!.setBoneAttachment(
+                HAT_BONE_NAME,
+                boneNode
+            )
+            andy!!.setParent(this)
+            hatNode!!.renderable = hatRenderable
+            hatNode!!.setParent(boneNode)
+            hatNode!!.worldScale = Vector3.one()
+            hatNode!!.worldRotation = Quaternion.identity()
+            val pos = hatNode!!.worldPosition
+            // Lower the hat down over the antennae.
+            pos.y -= .1f
+            hatNode!!.worldPosition = pos
+
+
+            // Print the child nodes of andy
+            Log.i(TAG, "Submesh count of Andy ${andyRenderable?.submeshCount}")
+            for (i in 0 until andyRenderable?.submeshCount!!){
+                Log.i(TAG, "Submesh names of Andy ${andyRenderable?.getSubmeshName(i)}")
+            }
+            traverseChildren(this)
+
             nextAnimation = when {
                 currentAnimation != null -> currentAnimation!!.toInt()
                 else -> (nextAnimation + 1) % andyRenderable!!.animationDataCount
