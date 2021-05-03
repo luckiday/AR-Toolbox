@@ -432,6 +432,7 @@ class Andy(
         private val hatNode: Node? = null
         private val andy: SkeletonNode? = null
 
+        /* Loading the animation command from NDN network */
         private const val TAG = "NDN-Animation-Client"
         private var producerName = "/edge"
         private var lastAnimationName: String? = null
@@ -460,7 +461,6 @@ class Andy(
             )
         )
 
-        // PKCS #8 PrivateKeyInfo.
         private val DEFAULT_RSA_PRIVATE_KEY_DER = toBuffer(
             intArrayOf(
                 0x30, 0x82, 0x04, 0xbf, 0x02, 0x01, 0x00, 0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7,
@@ -543,13 +543,14 @@ class Andy(
             )
         )
 
-        // Convert the int array to a ByteBuffer.
+        /* Convert the int array to a ByteBuffer. */
         private fun toBuffer(array: IntArray): ByteBuffer {
             val result = ByteBuffer.allocate(array.size)
             for (i in array.indices) result.put((array[i] and 0xff).toByte())
             result.flip()
             return result
         }
+        private val useNDN = false
     }
 
     private inner class MetadataResults : OnData, OnTimeout,
@@ -639,9 +640,11 @@ class Andy(
 
 
     init {
-        face = Face("localhost")
-        val thread = FrameThread()
-        thread.start()
+        if (useNDN){
+            face = Face("localhost")
+            val thread = FrameThread()
+            thread.start()
+        }
 
         ModelRenderable.builder()
             .setSource(context.applicationContext, R.raw.andy_dance)
@@ -649,10 +652,6 @@ class Andy(
             .thenAccept { currentRenderable ->
                 renderable = currentRenderable
                 andyRenderable = currentRenderable
-//                val data = andyRenderable?.getAnimationData(nextAnimation)
-//                nextAnimation = (nextAnimation + 1) % andyRenderable!!.animationDataCount
-//                animator = ModelAnimator(data, andyRenderable)
-//                animator!!.start()
             }
         ModelRenderable.builder()
             .setSource(context.applicationContext, R.raw.baseball_cap)
@@ -665,8 +664,11 @@ class Andy(
     override fun onTap(hitTestResult: HitTestResult?, motionEvent: MotionEvent?) {
         super.onTap(hitTestResult, motionEvent)
         if (animator == null || !animator?.isRunning!!) {
-            val data = andyRenderable!!.getAnimationData(currentAnimation!!.toInt() )
-//                nextAnimation = (nextAnimation + 1) % andyRenderable!!.animationDataCount
+            nextAnimation = when {
+                currentAnimation != null -> currentAnimation!!.toInt()
+                else -> (nextAnimation + 1) % andyRenderable!!.animationDataCount
+            }
+            val data = andyRenderable!!.getAnimationData(nextAnimation)
             animator = ModelAnimator(data, andyRenderable)
             animator!!.start()
         }
@@ -820,7 +822,10 @@ class Link(
     }
 
     init {
-        warmup(context, uri).thenAccept { renderable = it }
+        warmup(context, uri).thenAccept {
+            renderable = it
+            // TODO: Check the node structure of the received gltf node
+        }
     }
 }
 
@@ -1015,6 +1020,7 @@ class Video(
     }
 
     override fun onActivate() {
+        // TODO: Use stream resource for the media player
         mediaPlayer = MediaPlayer.create(context.applicationContext, R.raw.video).apply {
             isLooping = true
             setSurface(texture.surface)
