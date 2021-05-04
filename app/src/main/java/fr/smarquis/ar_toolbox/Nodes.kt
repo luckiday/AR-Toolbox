@@ -1066,7 +1066,7 @@ class Video(
 
     override fun onActivate() {
         val source = "Customized"
-        val url = "https://www.rmp-streaming.com/media/big-buck-bunny-360p.mp4"
+        val url = "https://www.rmp-streaming.com/media/big-buck-bunny-720p.mp4"
 
         mediaPlayer = when (source) {
             "Tiger" ->  MediaPlayer.create(context.applicationContext, R.raw.video).apply {
