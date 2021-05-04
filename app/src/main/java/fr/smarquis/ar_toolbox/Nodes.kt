@@ -1062,14 +1062,15 @@ class Video(
     }
 
     override fun onActivate() {
-        // TODO: Use stream resource for the media player
-        val url = "https://www.rmp-streaming.com/media/big-buck-bunny-360p.mp4"
 //        mediaPlayer = MediaPlayer.create(context.applicationContext, R.raw.video).apply {
 //            isLooping = true
 //            setSurface(texture.surface)
 //            setOnVideoSizeChangedListener(this@Video)
 //            start()
 //        }
+
+        /*  Use stream resource for the media player */
+        val url = "https://www.rmp-streaming.com/media/big-buck-bunny-360p.mp4"
         mediaPlayer = MediaPlayer().apply {
             setAudioAttributes(
                 AudioAttributes.Builder()
