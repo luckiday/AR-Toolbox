@@ -6,6 +6,7 @@ import android.content.Context
 import android.graphics.BitmapFactory
 import android.media.AudioAttributes
 import android.media.MediaPlayer
+import android.media.MediaPlayer.OnPreparedListener
 import android.net.Uri
 import android.text.Layout
 import android.text.style.AlignmentSpan
@@ -1064,27 +1065,48 @@ class Video(
     }
 
     override fun onActivate() {
-//        mediaPlayer = MediaPlayer.create(context.applicationContext, R.raw.video).apply {
-//            isLooping = true
-//            setSurface(texture.surface)
-//            setOnVideoSizeChangedListener(this@Video)
-//            start()
-//        }
-
-        /*  Use stream resource for the media player */
+        val source = "Customized"
         val url = "https://www.rmp-streaming.com/media/big-buck-bunny-360p.mp4"
-        mediaPlayer = MediaPlayer().apply {
-            setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .build()
-            )
-            setDataSource(url)
-            prepare() // might take long! (for buffering, etc)
-            setSurface(texture.surface)
-            setOnVideoSizeChangedListener(this@Video)
-            start()
+
+        mediaPlayer = when (source) {
+            "Tiger" ->  MediaPlayer.create(context.applicationContext, R.raw.video).apply {
+                isLooping = true
+                setSurface(texture.surface)
+                setOnVideoSizeChangedListener(this@Video)
+                start()
+            }
+            "https" -> MediaPlayer().apply {
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .build()
+                )
+                setDataSource(url)
+                prepare() // might take long! (for buffering, etc)
+                setSurface(texture.surface)
+                setOnVideoSizeChangedListener(this@Video)
+                start()
+            }
+            else -> {
+                /* Load customized data source */
+                val dataSource = VideoDataSource()
+                dataSource.setVideoURL(url)
+                dataSource.downloadVideo(object : VideoDownloadListener {
+                    override fun onVideoDownloaded() {
+                        mediaPlayer!!.prepareAsync()
+                    }
+                    override fun onVideoDownloadError(e: java.lang.Exception?) {
+                        Log.d("Video Download Error", e.toString())
+                    }
+                })
+                MediaPlayer().apply {
+                    setDataSource(dataSource)
+                    setSurface(texture.surface)
+                    setOnVideoSizeChangedListener(this@Video)
+                    setOnPreparedListener(OnPreparedListener { mp -> mp.start() })
+                }
+            }
         }
     }
 
