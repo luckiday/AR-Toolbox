@@ -1056,8 +1056,8 @@ class Video(
             .build()
             .thenAccept {
                 it.material.setExternalTexture("videoTexture", texture)
-//                it.material.setFloat4("keyColor", Color(0.1843f, 1.0f, 0.098f))
-//                it.material.setFloat4("keyColor", Color(1.0f, 1.0f, 1.0f))
+//                it.material.setFloat4("keyColor", Color(0.1843f, 1.0f, 0.098f)) // Green screen
+//                it.material.setFloat4("keyColor", Color(1.0f, 1.0f, 1.0f))      // White
                 it.material.setBoolean("disableChromaKey", true)
                 video.renderable = it
             }
