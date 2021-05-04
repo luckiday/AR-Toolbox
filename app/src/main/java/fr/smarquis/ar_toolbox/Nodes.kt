@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.BitmapFactory
+import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
 import android.text.Layout
@@ -704,8 +705,7 @@ class Andy(
             for (i in 0 until andyRenderable?.submeshCount!!){
                 Log.i(TAG, "Submesh names of Andy ${andyRenderable?.getSubmeshName(i)}")
             }
-            traverseChildren(this)
-
+            traverseChildren(andy as Node)
             nextAnimation = when {
                 currentAnimation != null -> currentAnimation!!.toInt()
                 else -> (nextAnimation + 1) % andyRenderable!!.animationDataCount
@@ -1063,8 +1063,22 @@ class Video(
 
     override fun onActivate() {
         // TODO: Use stream resource for the media player
-        mediaPlayer = MediaPlayer.create(context.applicationContext, R.raw.video).apply {
-            isLooping = true
+        val url = "https://www.rmp-streaming.com/media/big-buck-bunny-360p.mp4"
+//        mediaPlayer = MediaPlayer.create(context.applicationContext, R.raw.video).apply {
+//            isLooping = true
+//            setSurface(texture.surface)
+//            setOnVideoSizeChangedListener(this@Video)
+//            start()
+//        }
+        mediaPlayer = MediaPlayer().apply {
+            setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .build()
+            )
+            setDataSource(url)
+            prepare() // might take long! (for buffering, etc)
             setSurface(texture.surface)
             setOnVideoSizeChangedListener(this@Video)
             start()
