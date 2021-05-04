@@ -699,13 +699,13 @@ class Andy(
             pos.y -= .1f
             hatNode!!.worldPosition = pos
 
-
-            // Print the child nodes of andy
+            // Log the children nodes of andy
             Log.i(TAG, "Submesh count of Andy ${andyRenderable?.submeshCount}")
             for (i in 0 until andyRenderable?.submeshCount!!){
                 Log.i(TAG, "Submesh names of Andy ${andyRenderable?.getSubmeshName(i)}")
             }
             traverseChildren(andy as Node)
+
             nextAnimation = when {
                 currentAnimation != null -> currentAnimation!!.toInt()
                 else -> (nextAnimation + 1) % andyRenderable!!.animationDataCount
@@ -1056,7 +1056,9 @@ class Video(
             .build()
             .thenAccept {
                 it.material.setExternalTexture("videoTexture", texture)
-                it.material.setFloat4("keyColor", Color(0.1843f, 1.0f, 0.098f))
+//                it.material.setFloat4("keyColor", Color(0.1843f, 1.0f, 0.098f))
+//                it.material.setFloat4("keyColor", Color(1.0f, 1.0f, 1.0f))
+                it.material.setBoolean("disableChromaKey", true)
                 video.renderable = it
             }
     }
