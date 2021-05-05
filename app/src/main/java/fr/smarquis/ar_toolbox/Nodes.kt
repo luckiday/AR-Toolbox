@@ -1145,9 +1145,9 @@ class NdnVideo(
     settings: Settings
 ) : Nodes("NdnVideo", coordinator, settings) {
 
-//    private var mediaPlayer: MediaPlayer? = null
     private val texture = ExternalTexture()
     private var ndnMediaPlayer: NdnMediaPlayer? = null
+    private val disableChromaKey = false
 
     /* Use a child node to keep the video dimensions independent of scaling */
     private val ndnVideo: Node = Node().apply { setParent(this@NdnVideo) }
@@ -1158,20 +1158,17 @@ class NdnVideo(
             .build()
             .thenAccept {
                 it.material.setExternalTexture("videoTexture", texture)
-//                it.material.setFloat4("keyColor", Color(0.1843f, 1.0f, 0.098f)) // Green screen
-//                it.material.setFloat4("keyColor", Color(1.0f, 1.0f, 1.0f))      // White
-                it.material.setBoolean("disableChromaKey", true)
+                if (disableChromaKey) {
+                    // Green screen
+                    it.material.setFloat4("keyColor", Color(0.1843f, 1.0f, 0.098f))
+                } else {
+                    it.material.setBoolean("disableChromaKey", true)
+                }
                 ndnVideo.renderable = it
             }
     }
 
     override fun onActivate() {
-//        mediaPlayer = MediaPlayer.create(context.applicationContext, R.raw.video).apply {
-//            isLooping = true
-//            setSurface(texture.surface)
-//            setOnVideoSizeChangedListener(this@NdnVideo)
-//            start()
-//        }
         val width = 1280
         val height = 720
 
