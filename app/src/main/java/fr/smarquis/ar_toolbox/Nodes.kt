@@ -1172,9 +1172,16 @@ class NdnVideo(
 //            setOnVideoSizeChangedListener(this@NdnVideo)
 //            start()
 //        }
-        ndnMediaPlayer = NdnMediaPlayer(context).apply {
-            setSurface(texture.surface)
+        val width = 1280
+        val height = 720
+
+        ndnVideo.localScale = when {
+            width > height -> Vector3(1F, height / width.toFloat(), 1F)
+            width < height -> Vector3(width / height.toFloat(), 1F, 1F)
+            else -> Vector3.one()
         }
+
+        ndnMediaPlayer = NdnMediaPlayer(context, texture.surface)
     }
 
     fun isPlaying(): Boolean = ndnMediaPlayer?.isPlaying ?: false
@@ -1188,16 +1195,6 @@ class NdnVideo(
     override fun onDeactivate() {
         ndnMediaPlayer?.onDestroy()
         ndnMediaPlayer = null
-    }
-
-    fun onVideoSizeChanged(mp: MediaPlayer, width: Int, height: Int) {
-        if (width == 0 || height == 0) return
-        mp.setOnVideoSizeChangedListener(null)
-        ndnVideo.localScale = when {
-            width > height -> Vector3(1F, height / width.toFloat(), 1F)
-            width < height -> Vector3(width / height.toFloat(), 1F, 1F)
-            else -> Vector3.one()
-        }
     }
 }
 

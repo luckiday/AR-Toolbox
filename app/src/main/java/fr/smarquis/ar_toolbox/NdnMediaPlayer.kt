@@ -32,12 +32,14 @@ import kotlin.experimental.and
 
 
 class NdnMediaPlayer(
-    val context: Context,
+    context: Context,
+    surface: Surface
 ) {
-    //    private var mSurfaceView: SurfaceView? = null
-    private var displaySurface: Surface? = null
-    private var resultView: SurfaceView? = null
-    private var resultViewHolder: SurfaceHolder? = null
+    private val appContext = context
+    private var displaySurface = surface
+
+//    private var resultView: SurfaceView? = null
+//    private var resultViewHolder: SurfaceHolder? = null
     private var canvas: Canvas? = null
     private var paint: Paint? = null
     private var mCodec: MediaCodec? = null
@@ -79,11 +81,11 @@ class NdnMediaPlayer(
     }
 
     fun onDestroy() {
-        multicastLock!!.release()
+//        multicastLock!!.release()
     }
 
     private fun allowMulticast() {
-        val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val wifiManager = appContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
         multicastLock = wifiManager.createMulticastLock("multicast.test")
         multicastLock?.acquire()
     }
@@ -92,65 +94,65 @@ class NdnMediaPlayer(
         displaySurface = surface
     }
 
-    private fun DrawFocusRect(
-        RectLeft: Float,
-        RectTop: Float,
-        RectRight: Float,
-        RectBottom: Float,
-        color: Int,
-        label: String
-    ) {
-        canvas = resultViewHolder!!.lockCanvas()
-        //        canvas.drawColor(0, PorterDuff.Mode.CLEAR);
-        paint = Paint()
-        paint!!.style = Paint.Style.STROKE
-        paint!!.color = color
-        paint!!.strokeWidth = 6f
-        paint!!.textSize = 80f
-        canvas?.drawRect(RectLeft, RectTop, RectRight, RectBottom, paint!!)
-        canvas?.drawText(label, RectLeft, RectTop, paint!!)
-        resultViewHolder!!.unlockCanvasAndPost(canvas)
-    }
+//    private fun DrawFocusRect(
+//        RectLeft: Float,
+//        RectTop: Float,
+//        RectRight: Float,
+//        RectBottom: Float,
+//        color: Int,
+//        label: String
+//    ) {
+//        canvas = resultViewHolder!!.lockCanvas()
+//        //        canvas.drawColor(0, PorterDuff.Mode.CLEAR);
+//        paint = Paint()
+//        paint!!.style = Paint.Style.STROKE
+//        paint!!.color = color
+//        paint!!.strokeWidth = 6f
+//        paint!!.textSize = 80f
+//        canvas?.drawRect(RectLeft, RectTop, RectRight, RectBottom, paint!!)
+//        canvas?.drawText(label, RectLeft, RectTop, paint!!)
+//        resultViewHolder!!.unlockCanvasAndPost(canvas)
+//    }
 
-    private fun DrawYoloRect(yoloresults: JSONArray, screenWidth: Float, screenHeight: Float) {
-        canvas = resultViewHolder!!.lockCanvas()
-        canvas?.drawColor(0, PorterDuff.Mode.CLEAR)
-        paint = Paint()
-        paint!!.style = Paint.Style.STROKE
-        paint!!.color = Color.RED
-        paint!!.strokeWidth = 6f
-        paint!!.textSize = 80f
-        try {
-            for (i in 0 until yoloresults.length()) {
-//                Log.d(TAG, "onData: "+ yoloresults.get(i));
-//                    List<String> object = results.get(i);
-                val result = yoloresults.getJSONArray(i)
-                val objName = result.getString(0)
-                var objleft = result.getString(1).toFloat()
-                var objtop = result.getString(2).toFloat()
-                var objright = result.getString(3).toFloat()
-                var objbottom = result.getString(4).toFloat()
-                objleft = objleft * screenWidth / VIDEO_WIDTH
-                objright = objright * screenWidth / VIDEO_WIDTH
-                objtop = objtop * screenHeight / VIDEO_HEIGHT
-                objbottom = objbottom * screenHeight / VIDEO_HEIGHT
-                //                long time = System.currentTimeMillis();
-//                DrawFocusRect(objleft, objtop, objright, objbottom, Color.RED, objName);
-//                Log.d(TAG, "Draw time : "+ (System.currentTimeMillis()-time));
-                canvas?.drawRect(objleft, objtop, objright, objbottom, paint!!)
-                canvas?.drawText(objName, objleft, objtop, paint!!)
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        resultViewHolder!!.unlockCanvasAndPost(canvas)
-    }
+//    private fun DrawYoloRect(yoloresults: JSONArray, screenWidth: Float, screenHeight: Float) {
+//        canvas = resultViewHolder!!.lockCanvas()
+//        canvas?.drawColor(0, PorterDuff.Mode.CLEAR)
+//        paint = Paint()
+//        paint!!.style = Paint.Style.STROKE
+//        paint!!.color = Color.RED
+//        paint!!.strokeWidth = 6f
+//        paint!!.textSize = 80f
+//        try {
+//            for (i in 0 until yoloresults.length()) {
+////                Log.d(TAG, "onData: "+ yoloresults.get(i));
+////                    List<String> object = results.get(i);
+//                val result = yoloresults.getJSONArray(i)
+//                val objName = result.getString(0)
+//                var objleft = result.getString(1).toFloat()
+//                var objtop = result.getString(2).toFloat()
+//                var objright = result.getString(3).toFloat()
+//                var objbottom = result.getString(4).toFloat()
+//                objleft = objleft * screenWidth / VIDEO_WIDTH
+//                objright = objright * screenWidth / VIDEO_WIDTH
+//                objtop = objtop * screenHeight / VIDEO_HEIGHT
+//                objbottom = objbottom * screenHeight / VIDEO_HEIGHT
+//                //                long time = System.currentTimeMillis();
+////                DrawFocusRect(objleft, objtop, objright, objbottom, Color.RED, objName);
+////                Log.d(TAG, "Draw time : "+ (System.currentTimeMillis()-time));
+//                canvas?.drawRect(objleft, objtop, objright, objbottom, paint!!)
+//                canvas?.drawText(objName, objleft, objtop, paint!!)
+//            }
+//        } catch (e: Exception) {
+//            e.printStackTrace()
+//        }
+//        resultViewHolder!!.unlockCanvasAndPost(canvas)
+//    }
 
-    private fun clearResults() {
-        canvas = resultViewHolder!!.lockCanvas()
-        canvas?.drawColor(0, PorterDuff.Mode.CLEAR)
-        resultViewHolder!!.unlockCanvasAndPost(canvas)
-    }
+//    private fun clearResults() {
+//        canvas = resultViewHolder!!.lockCanvas()
+//        canvas?.drawColor(0, PorterDuff.Mode.CLEAR)
+//        resultViewHolder!!.unlockCanvasAndPost(canvas)
+//    }
 
     var `is`: InputStream? = null
 
@@ -199,6 +201,7 @@ class NdnMediaPlayer(
             val headerPps = byteArrayOf(0, 0, 0, 1, 104, -50, 6, -30)
             format.setByteBuffer("csd-0", ByteBuffer.wrap(headerSps))
             format.setByteBuffer("csd-1", ByteBuffer.wrap(headerPps))
+
             mCodec!!.configure(format, displaySurface, null, 0)
             mCodec!!.start()
         } catch (e: IOException) {
@@ -292,7 +295,6 @@ class NdnMediaPlayer(
             var lastInterest: Interest? = Interest(Name("lastInterest"))
             var repeatInterestCounter = 0
             while (true) {
-                Log.i("Decoding Thread", "Queue")
                 if (interestQueue.size == 0){
                     sleep(20)
                     continue
@@ -360,29 +362,29 @@ class NdnMediaPlayer(
         }
     }
 
-    private inner class YoloResutls : OnData, OnTimeout, OnRegisterFailed {
-        override fun onData(interest: Interest, data: Data) {
-            val screenWidth = resultView!!.width.toFloat()
-            val screenHeight = resultView!!.height.toFloat()
-            //            Log.d(TAG, "Screen Width and Height: "+screenWidth + " " + screenHeight);
-            Log.i(TAG, "Got data packet with name " + data.name.toUri())
-            try {
-                val results = JSONArray(data.content.toString())
-                DrawYoloRect(results, screenWidth, screenHeight)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-            //            Log.i(TAG, "Got data packet with Content " + data.getContent());
-        }
-
-        override fun onTimeout(interest: Interest) {
-            Log.i(TAG, "Time out for interest " + interest.name.toUri())
-        }
-
-        override fun onRegisterFailed(name: Name) {
-            Log.i(TAG, "onRegisterFailed for interest " + name.toUri())
-        }
-    }
+//    private inner class YoloResutls : OnData, OnTimeout, OnRegisterFailed {
+//        override fun onData(interest: Interest, data: Data) {
+//            val screenWidth = resultView!!.width.toFloat()
+//            val screenHeight = resultView!!.height.toFloat()
+//            //            Log.d(TAG, "Screen Width and Height: "+screenWidth + " " + screenHeight);
+//            Log.i(TAG, "Got data packet with name " + data.name.toUri())
+//            try {
+//                val results = JSONArray(data.content.toString())
+//                DrawYoloRect(results, screenWidth, screenHeight)
+//            } catch (e: Exception) {
+//                e.printStackTrace()
+//            }
+//            //            Log.i(TAG, "Got data packet with Content " + data.getContent());
+//        }
+//
+//        override fun onTimeout(interest: Interest) {
+//            Log.i(TAG, "Time out for interest " + interest.name.toUri())
+//        }
+//
+//        override fun onRegisterFailed(name: Name) {
+//            Log.i(TAG, "onRegisterFailed for interest " + name.toUri())
+//        }
+//    }
 
     private inner class FrameThread : Thread() {
         override fun run() {
@@ -390,7 +392,7 @@ class NdnMediaPlayer(
                 // ===============Retrieve Frame========================
                 val holCounter = AtomicLong(System.currentTimeMillis())
                 val holInterest = AtomicReference<Interest?>()
-                val yoloResutls: YoloResutls = YoloResutls()
+//                val yoloResutls: YoloResutls = YoloResutls()
                 val keyChain = KeyChain("pib-memory:", "tpm-memory:")
                 keyChain.importSafeBag(
                     SafeBag(
