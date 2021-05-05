@@ -1143,13 +1143,14 @@ class NdnVideo(
     val context: Context,
     coordinator: Coordinator,
     settings: Settings
-) : Nodes("NdnVideo", coordinator, settings), MediaPlayer.OnVideoSizeChangedListener {
+) : Nodes("NdnVideo", coordinator, settings) {
 
-    private var mediaPlayer: MediaPlayer? = null
+//    private var mediaPlayer: MediaPlayer? = null
     private val texture = ExternalTexture()
+    private var ndnMediaPlayer: NdnMediaPlayer? = null
 
     /* Use a child node to keep the video dimensions independent of scaling */
-    private val video: Node = Node().apply { setParent(this@NdnVideo) }
+    private val ndnVideo: Node = Node().apply { setParent(this@NdnVideo) }
 
     init {
         ModelRenderable.builder()
@@ -1160,44 +1161,43 @@ class NdnVideo(
 //                it.material.setFloat4("keyColor", Color(0.1843f, 1.0f, 0.098f)) // Green screen
 //                it.material.setFloat4("keyColor", Color(1.0f, 1.0f, 1.0f))      // White
                 it.material.setBoolean("disableChromaKey", true)
-                video.renderable = it
+                ndnVideo.renderable = it
             }
     }
 
     override fun onActivate() {
-        val source = "NDN"
-        val url = "https://www.rmp-streaming.com/media/big-buck-bunny-720p.mp4"
-        mediaPlayer = MediaPlayer.create(context.applicationContext, R.raw.video).apply {
-            isLooping = true
+//        mediaPlayer = MediaPlayer.create(context.applicationContext, R.raw.video).apply {
+//            isLooping = true
+//            setSurface(texture.surface)
+//            setOnVideoSizeChangedListener(this@NdnVideo)
+//            start()
+//        }
+        ndnMediaPlayer = NdnMediaPlayer(context).apply {
             setSurface(texture.surface)
-            setOnVideoSizeChangedListener(this@NdnVideo)
-            start()
         }
     }
 
-    fun isPlaying(): Boolean = mediaPlayer?.isPlaying ?: false
+    fun isPlaying(): Boolean = ndnMediaPlayer?.isPlaying ?: false
 
     fun toggle() {
-        mediaPlayer?.let {
+        ndnMediaPlayer?.let {
             if (it.isPlaying) it.pause() else it.start()
         }
     }
 
     override fun onDeactivate() {
-        mediaPlayer?.setOnVideoSizeChangedListener(null)
-        mediaPlayer?.release()
-        mediaPlayer = null
+        ndnMediaPlayer?.onDestroy()
+        ndnMediaPlayer = null
     }
 
-    override fun onVideoSizeChanged(mp: MediaPlayer, width: Int, height: Int) {
+    fun onVideoSizeChanged(mp: MediaPlayer, width: Int, height: Int) {
         if (width == 0 || height == 0) return
         mp.setOnVideoSizeChangedListener(null)
-        video.localScale = when {
+        ndnVideo.localScale = when {
             width > height -> Vector3(1F, height / width.toFloat(), 1F)
             width < height -> Vector3(width / height.toFloat(), 1F, 1F)
             else -> Vector3.one()
         }
     }
-
 }
 

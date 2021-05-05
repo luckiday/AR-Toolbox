@@ -12,6 +12,7 @@ import android.media.MediaFormat
 import android.net.wifi.WifiManager
 import android.net.wifi.WifiManager.MulticastLock
 import android.util.Log
+import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import net.named_data.jndn.*
@@ -33,7 +34,8 @@ import kotlin.experimental.and
 class NdnMediaPlayer(
     val context: Context,
 ) {
-    private var mSurfaceView: SurfaceView? = null
+    //    private var mSurfaceView: SurfaceView? = null
+    private var displaySurface: Surface? = null
     private var resultView: SurfaceView? = null
     private var resultViewHolder: SurfaceHolder? = null
     private var canvas: Canvas? = null
@@ -41,11 +43,39 @@ class NdnMediaPlayer(
     private var mCodec: MediaCodec? = null
     private var face: Face? = null
     private var multicastLock: MulticastLock? = null
-    private var IframeIndex: Long = 29
+    private var iframeIndex: Long = 29
+    var isPlaying: Boolean = false
+    private val interestQueue: Queue<Interest> = LinkedList()
+    private val frameResCache: MutableMap<Interest?, Blob?> = HashMap<Interest?, Blob?>()
+
 
     init {
-        allowMulticast()
+//        allowMulticast()
         face = Face("localhost")
+        producerName = "/edge"
+        jitterFast = 20
+        jitterSlow = 33
+        interestInterval = 15
+
+        val thread = FrameThread()
+        thread.start()
+
+        val jthread = JitterThread()
+        jthread.start()
+
+        val dthread = DecodeThread()
+        dthread.start()
+
+        initDecoder()
+    }
+
+    fun pause() {
+        // TODO: Update the start and pause functions
+        isPlaying = false
+    }
+
+    fun start() {
+        isPlaying = true
     }
 
     fun onDestroy() {
@@ -56,6 +86,10 @@ class NdnMediaPlayer(
         val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
         multicastLock = wifiManager.createMulticastLock("multicast.test")
         multicastLock?.acquire()
+    }
+
+    fun setSurface(surface: Surface) {
+        displaySurface = surface
     }
 
     private fun DrawFocusRect(
@@ -127,7 +161,7 @@ class NdnMediaPlayer(
             mCodec = MediaCodec.createDecoderByType(MIME_TYPE)
             val format = MediaFormat.createVideoFormat(MIME_TYPE, VIDEO_WIDTH, VIDEO_HEIGHT)
             format.setInteger(MediaFormat.KEY_BIT_RATE, VIDEO_WIDTH * VIDEO_HEIGHT * 5)
-            //            format.setInteger(MediaFormat.KEY_BIT_RATE, 320000);
+//            format.setInteger(MediaFormat.KEY_BIT_RATE, 320000);
             format.setInteger(MediaFormat.KEY_FRAME_RATE, 30)
             format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
             format.setInteger(
@@ -152,7 +186,8 @@ class NdnMediaPlayer(
 //            byte[] header_pps = {0, 0, 0, 1, 104, -50, 6, -30};
 
             // New SPS Config
-            val header_sps = byteArrayOf(0, 0, 0, 1, 103, (244 - 256).toByte(), 0, 31,
+            val headerSps = byteArrayOf(
+                0, 0, 0, 1, 103, (244 - 256).toByte(), 0, 31,
                 (145 - 256).toByte(), (150 - 256).toByte(), 64, 20, 1, 110, (132 - 256).toByte(), 0,
                 0, 3, 0, 4, 0, 0, 3, 0, (200 - 256).toByte(), 60, (201 - 256).toByte(), 32
             )
@@ -161,10 +196,10 @@ class NdnMediaPlayer(
 //            byte[] header_sps = {0, 0, 0, 1, 103, 66, -128, 31, -38, 1, 64, 22, -23, 72, 40, 16, 16, 54, -123, 9, -88}; // 1280*720
 //            byte[] header_sps = {0, 0, 0, 1, 103, 66, -128, 10, -38, 1, 64, 22, -24, 6, -48, -95, 53, 0, 0, 0, 1, 104, -50, 6, -14}; // 1280*720
 //            byte[] header_sps = {0, 0, 0, 1, 103, 66, -128, 40, -38, 1, -32, 8, -97, -106, 82, 10, 4, 4, 13, -95, 66, 106}; // 1920*1080
-            val header_pps = byteArrayOf(0, 0, 0, 1, 104, -50, 6, -30)
-            format.setByteBuffer("csd-0", ByteBuffer.wrap(header_sps))
-            format.setByteBuffer("csd-1", ByteBuffer.wrap(header_pps))
-            mCodec!!.configure(format, mSurfaceView!!.holder.surface, null, 0)
+            val headerPps = byteArrayOf(0, 0, 0, 1, 104, -50, 6, -30)
+            format.setByteBuffer("csd-0", ByteBuffer.wrap(headerSps))
+            format.setByteBuffer("csd-1", ByteBuffer.wrap(headerPps))
+            mCodec!!.configure(format, displaySurface, null, 0)
             mCodec!!.start()
         } catch (e: IOException) {
             e.printStackTrace()
@@ -212,9 +247,9 @@ class NdnMediaPlayer(
                 TAG,
                 "onEncodedAvcFrame: SPS+I frame: $frameNum"
             )
-            IframeIndex = frameNum % 30
+            iframeIndex = frameNum % 30
         } else if (type == NAL_SLICE) {
-            Log.d(TAG, "onEncodedAvcFrame: P frame$frameNum");
+            Log.d(TAG, "onEncodedAvcFrame: P frame$frameNum")
         }
     }
 
@@ -257,6 +292,11 @@ class NdnMediaPlayer(
             var lastInterest: Interest? = Interest(Name("lastInterest"))
             var repeatInterestCounter = 0
             while (true) {
+                Log.i("Decoding Thread", "Queue")
+                if (interestQueue.size == 0){
+                    sleep(20)
+                    continue
+                }
 //                Log.d(TAG, "DecodeThread Runing:" + interestQueue.size()+" " + frameResCache.size());
                 if (frameResCache[interestQueue.peek()] != null) {
                     val content = frameResCache[interestQueue.peek()]
@@ -293,8 +333,6 @@ class NdnMediaPlayer(
         }
     }
 
-    private val interestQueue: Queue<Interest?> = LinkedList()
-    private val frameResCache: MutableMap<Interest?, Blob?> = HashMap()
 
     private inner class MetadataResutls : OnData, OnTimeout, OnRegisterFailed {
         override fun onData(interest: Interest, data: Data) {
@@ -304,9 +342,9 @@ class NdnMediaPlayer(
             val metaInfoName = Name(producerName + "/1080p/metadata")
             if (metaInfoName.isPrefixOf(data.name)) {
                 latestFrameName = Name(data.content.toString())
-                val tmpIframeIndex = latestFrameName!![-1].toNumber() % 30
-                if (tmpIframeIndex != IframeIndex) {
-                    IframeIndex = tmpIframeIndex
+                val tmpiframeIndex = latestFrameName!![-1].toNumber() % 30
+                if (tmpiframeIndex != iframeIndex) {
+                    iframeIndex = tmpiframeIndex
                     frameNum = latestFrameName!![-1].toNumber()
                     Log.d(TAG, "onMetaData: Re-sync I-index")
                 }
@@ -362,14 +400,14 @@ class NdnMediaPlayer(
                     )
                 )
                 val metadataResutls: MetadataResutls = MetadataResutls()
-                val baseFrameName = producerName + "/1080p/frame"
+                val baseFrameName = "$producerName/1080p/frame"
                 val options = SegmentFetcher.Options()
                 val maxTimeOut = 10000
                 options.maxTimeout = maxTimeOut
                 var outstandingCounter: Long = 0
                 while (true) {
                     while (latestFrameName == null) {
-                        val metadataName = Name(producerName + "/1080p/metadata").appendTimestamp(
+                        val metadataName = Name("$producerName/1080p/metadata").appendTimestamp(
                             System.currentTimeMillis()
                         )
                         face!!.expressInterest(metadataName, metadataResutls, metadataResutls)
@@ -378,7 +416,7 @@ class NdnMediaPlayer(
                         sleep(20)
                     }
                     frameNum = latestFrameName!![-1].toNumber()
-                    Log.d(TAG, "Latest I frameNum: " + frameNum)
+                    Log.d(TAG, "Latest I frameNum: $frameNum")
                     while (latestFrameName != null) {
                         while (retranInterestQueue.peek() != null) {
                             Log.d(
@@ -408,7 +446,7 @@ class NdnMediaPlayer(
                         }
                         if (fastSyncFlag) {
                             val metadataName =
-                                Name(producerName + "/1080p/metadata").appendTimestamp(
+                                Name("$producerName/1080p/metadata").appendTimestamp(
                                     System.currentTimeMillis()
                                 )
                             Log.v(TAG, "Express interest (fast sync) " + metadataName.toUri())
@@ -416,7 +454,7 @@ class NdnMediaPlayer(
                             fastSyncFlag = false
                         }
                         val frameName = Name(baseFrameName)
-                        if (frameNum % 30 == IframeIndex) {
+                        if (frameNum % 30 == iframeIndex) {
                             frameName.append("I")
                         } else {
                             frameName.append("P")
@@ -472,7 +510,7 @@ class NdnMediaPlayer(
                             // Send a metadata to sync every 10 outstanding Rounds
                             if (outstandingCounter % 10 == 0L) {
                                 val metadataName =
-                                    Name(producerName + "/1080p/metadata").appendTimestamp(
+                                    Name("$producerName/1080p/metadata").appendTimestamp(
                                         System.currentTimeMillis()
                                     )
                                 Log.v(
