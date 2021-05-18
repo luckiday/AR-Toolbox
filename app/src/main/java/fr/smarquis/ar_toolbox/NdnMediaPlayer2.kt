@@ -65,7 +65,7 @@ class NdnMediaPlayer2(
 
 
     init {
-//        allowMulticast()
+        allowMulticast()
         face = Face("localhost")
         producerName = "/edge"
         jitterFast = 25
@@ -435,22 +435,16 @@ class NdnMediaPlayer2(
                         Nfdc.createFace(face, FaceUri(producerUri).canonize().toString())
                     Log.d(TAG, "Nfdc.createFace: $faceId")
                     val mcastAddress = "udp4://224.5.0.2:50002"
-                    val mcast_flag = false
+                    val mcast_flag = true
                     if (mcast_flag) {
                         val unregisteredName = Name(producerName)
                         Nfdc.unregister(
                             face,
                             ControlParameters().setName(unregisteredName).setFaceId(faceId)
                         )
-                        //                        ribRegisterPrefix(new Name(producerName+"/1080p/frame/I"), faceId, 10, true, false);
-//                        ribRegisterPrefix(new Name(producerName+"/1080p/metadata"), faceId, 10, true, false);
-//                        faceId = Nfdc.createFace(face, new FaceUri(mcastAddress).canonize().toString());
-//                        ribRegisterPrefix(new Name(producerName+"/1080p/frame/P"), faceId, 10, true, false);
                         faceId = Nfdc.createFace(face, FaceUri(mcastAddress).canonize().toString())
                         ribRegisterPrefix(Name(producerName), faceId, 10, true, false)
                     } else {
-//                        Nfdc.unregister(face, new ControlParameters().setName(new Name(producerName+"/1080p/frame/I")).setFaceId(faceId));
-//                        Nfdc.unregister(face, new ControlParameters().setName(new Name(producerName+"/1080p/metadata")).setFaceId(faceId));
                         val McastfaceId: Int =
                             Nfdc.createFace(face, FaceUri(mcastAddress).canonize().toString())
                         Nfdc.unregister(
