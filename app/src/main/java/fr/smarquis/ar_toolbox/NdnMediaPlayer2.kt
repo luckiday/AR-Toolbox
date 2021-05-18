@@ -15,6 +15,7 @@ import android.util.Log
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import com.intel.jndn.management.Nfdc
 import net.named_data.jndn.*
 import net.named_data.jndn.security.KeyChain
 import net.named_data.jndn.security.SafeBag
@@ -29,16 +30,28 @@ import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.experimental.and
+import net.named_data.jndn.Interest
+import net.named_data.jndn.ControlParameters
+import net.named_data.jndn_xx.util.FaceUri
+import net.named_data.jndn.ForwardingFlags
+import net.named_data.jndn.OnRegisterFailed
+
+import net.named_data.jndn.OnTimeout
+
+import net.named_data.jndn.OnData
 
 
-class NdnMediaPlayer(
+
+
+
+class NdnMediaPlayer2(
     context: Context,
     surface: Surface
 ) {
     private val appContext = context
     private var displaySurface = surface
 
-//    private var resultView: SurfaceView? = null
+    //    private var resultView: SurfaceView? = null
 //    private var resultViewHolder: SurfaceHolder? = null
     private var canvas: Canvas? = null
     private var paint: Paint? = null
@@ -55,9 +68,9 @@ class NdnMediaPlayer(
 //        allowMulticast()
         face = Face("localhost")
         producerName = "/edge"
-        jitterFast = 20
-        jitterSlow = 33
-        interestInterval = 15
+        jitterFast = 25
+        jitterSlow = 40
+        interestInterval = 10
 
         val thread = FrameThread()
         thread.start()
@@ -94,66 +107,6 @@ class NdnMediaPlayer(
         displaySurface = surface
     }
 
-//    private fun DrawFocusRect(
-//        RectLeft: Float,
-//        RectTop: Float,
-//        RectRight: Float,
-//        RectBottom: Float,
-//        color: Int,
-//        label: String
-//    ) {
-//        canvas = resultViewHolder!!.lockCanvas()
-//        //        canvas.drawColor(0, PorterDuff.Mode.CLEAR);
-//        paint = Paint()
-//        paint!!.style = Paint.Style.STROKE
-//        paint!!.color = color
-//        paint!!.strokeWidth = 6f
-//        paint!!.textSize = 80f
-//        canvas?.drawRect(RectLeft, RectTop, RectRight, RectBottom, paint!!)
-//        canvas?.drawText(label, RectLeft, RectTop, paint!!)
-//        resultViewHolder!!.unlockCanvasAndPost(canvas)
-//    }
-
-//    private fun DrawYoloRect(yoloresults: JSONArray, screenWidth: Float, screenHeight: Float) {
-//        canvas = resultViewHolder!!.lockCanvas()
-//        canvas?.drawColor(0, PorterDuff.Mode.CLEAR)
-//        paint = Paint()
-//        paint!!.style = Paint.Style.STROKE
-//        paint!!.color = Color.RED
-//        paint!!.strokeWidth = 6f
-//        paint!!.textSize = 80f
-//        try {
-//            for (i in 0 until yoloresults.length()) {
-////                Log.d(TAG, "onData: "+ yoloresults.get(i));
-////                    List<String> object = results.get(i);
-//                val result = yoloresults.getJSONArray(i)
-//                val objName = result.getString(0)
-//                var objleft = result.getString(1).toFloat()
-//                var objtop = result.getString(2).toFloat()
-//                var objright = result.getString(3).toFloat()
-//                var objbottom = result.getString(4).toFloat()
-//                objleft = objleft * screenWidth / VIDEO_WIDTH
-//                objright = objright * screenWidth / VIDEO_WIDTH
-//                objtop = objtop * screenHeight / VIDEO_HEIGHT
-//                objbottom = objbottom * screenHeight / VIDEO_HEIGHT
-//                //                long time = System.currentTimeMillis();
-////                DrawFocusRect(objleft, objtop, objright, objbottom, Color.RED, objName);
-////                Log.d(TAG, "Draw time : "+ (System.currentTimeMillis()-time));
-//                canvas?.drawRect(objleft, objtop, objright, objbottom, paint!!)
-//                canvas?.drawText(objName, objleft, objtop, paint!!)
-//            }
-//        } catch (e: Exception) {
-//            e.printStackTrace()
-//        }
-//        resultViewHolder!!.unlockCanvasAndPost(canvas)
-//    }
-
-//    private fun clearResults() {
-//        canvas = resultViewHolder!!.lockCanvas()
-//        canvas?.drawColor(0, PorterDuff.Mode.CLEAR)
-//        resultViewHolder!!.unlockCanvasAndPost(canvas)
-//    }
-
     var `is`: InputStream? = null
 
     var posotion = 100
@@ -179,20 +132,31 @@ class NdnMediaPlayer(
                 MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline
             )
 
-            // horizontal
-//            byte[] header_sps = {0, 0, 0, 1, 103, 66, -128, 31, -38, 1, 64, 22, -24, 6, -48, -95, 53};
-//            byte[] header_pps = {0, 0 ,0, 1, 104, -50, 6, -30};
-
-            // vertical
-//            byte[] header_sps = {0, 0, 0, 1, 103, 66, -128, 31, -38, 2, -48, 40, 104, 6, -48, -95, 53};
-//            byte[] header_pps = {0, 0, 0, 1, 104, -50, 6, -30};
-
-            // New SPS Config
             val headerSps = byteArrayOf(
-                0, 0, 0, 1, 103, (244 - 256).toByte(), 0, 31,
-                (145 - 256).toByte(), (150 - 256).toByte(), 64, 20, 1, 110, (132 - 256).toByte(), 0,
-                0, 3, 0, 4, 0, 0, 3, 0, (200 - 256).toByte(), 60, (201 - 256).toByte(), 32
-            )
+                0,
+                0,
+                0,
+                1,
+                103,
+                66,
+                -128,
+                40,
+                -38,
+                1,
+                -32,
+                8,
+                -97,
+                -106,
+                82,
+                10,
+                4,
+                4,
+                13,
+                -95,
+                66,
+                106
+            ) // 1920*1080
+
 
             // 1280*720 Server
 //            byte[] header_sps = {0, 0, 0, 1, 103, 66, -128, 31, -38, 1, 64, 22, -23, 72, 40, 16, 16, 54, -123, 9, -88}; // 1280*720
@@ -230,30 +194,11 @@ class NdnMediaPlayer(
         }
     }
 
-    fun putH264Data(buffer: ByteArray, frameNum: Long) {
-        FrameClassify(buffer, frameNum)
+    fun putH264Data(buffer: ByteArray) {
         if (H264Queue.size >= h264queuesize) {
             H264Queue.poll()
         }
         H264Queue.add(buffer)
-    }
-
-    private fun FrameClassify(buffer: ByteArray, frameNum: Long) {
-        var offset = 4
-        if (buffer[2] == 0x01.toByte()) {
-            offset = 3
-        }
-        //        Log.d(TAG, "onEncodedAvcFrame: "+bytesToHex(buffer));
-        val type: Int = buffer[offset].and(0x1f.toByte()).toInt()
-        if (type == NAL_SPS || type == NAL_SLICE_IDR) {
-            Log.d(
-                TAG,
-                "onEncodedAvcFrame: SPS+I frame: $frameNum"
-            )
-            iframeIndex = frameNum % 30
-        } else if (type == NAL_SLICE) {
-            Log.d(TAG, "onEncodedAvcFrame: P frame$frameNum")
-        }
     }
 
     private inner class JitterThread : Thread() {
@@ -291,30 +236,109 @@ class NdnMediaPlayer(
     private val retranInterestQueue: Queue<Interest?> = LinkedList()
 
     private inner class DecodeThread : Thread() {
-        override fun run() {
-            var lastInterest: Interest? = Interest(Name("lastInterest"))
-            var repeatInterestCounter = 0
-            while (true) {
-                if (interestQueue.size == 0){
-                    sleep(20)
-                    continue
+        var NAL_SLICE = 1
+        var NAL_SLICE_DPA = 2
+        var NAL_SLICE_DPB = 3
+        var NAL_SLICE_DPC = 4
+        var NAL_SLICE_IDR = 5
+        var NAL_SEI = 6
+        var NAL_SPS = 7
+        var NAL_PPS = 8
+        var NAL_AUD = 9
+        var NAL_FILLER = 12
+        var server_type = "gpu"
+        fun splitUniframe(array: ByteArray, delimiter: ByteArray): List<ByteArray> {
+            val byteArrays: MutableList<ByteArray> = LinkedList()
+            if (delimiter.size == 0) {
+                return byteArrays
+            }
+            var begin = 0
+            var newBuf: ByteArray
+            outer@ for (i in 0 until array.size - delimiter.size + 1) {
+                for (j in delimiter.indices) {
+                    if (array[i + j] != delimiter[j]) {
+                        continue@outer
+                    }
                 }
+                val splitframe = Arrays.copyOfRange(array, begin, i)
+                if (splitframe.size > 0) {
+                    newBuf = ByteArray(delimiter.size + splitframe.size)
+                    System.arraycopy(delimiter, 0, newBuf, 0, delimiter.size)
+                    System.arraycopy(splitframe, 0, newBuf, delimiter.size, splitframe.size)
+                    byteArrays.add(newBuf)
+                }
+                begin = i + delimiter.size
+            }
+            val splitframe = Arrays.copyOfRange(array, begin, array.size)
+            newBuf = ByteArray(delimiter.size + splitframe.size)
+            System.arraycopy(delimiter, 0, newBuf, 0, delimiter.size)
+            System.arraycopy(splitframe, 0, newBuf, delimiter.size, splitframe.size)
+            byteArrays.add(newBuf)
+            return byteArrays
+        }
+
+        override fun run() {
+            var lastInterest = Interest(Name("lastInterest"))
+            var repeatInterestCounter = 0
+            var lastframe = byteArrayOf()
+            var sps_info = byteArrayOf()
+            var pps_info = byteArrayOf()
+            val sei_info = byteArrayOf()
+            var start_flag = false
+            while (keeprun_flag) {
 //                Log.d(TAG, "DecodeThread Runing:" + interestQueue.size()+" " + frameResCache.size());
-                if (frameResCache[interestQueue.peek()] != null) {
-                    val content = frameResCache[interestQueue.peek()]
-//                    Log.d(TAG, "run: "+interestQueue.peek().getName().get(-1).toEscapedString());
-                    val frameNum = interestQueue.peek()!!.name[-1].toEscapedString().toLong()
+                if (frameResCache.get(interestQueue.peek()) != null) {
+                    val content: Blob = frameResCache.get(interestQueue.peek())!!
+                    //                    Log.d(TAG, "run: "+interestQueue.peek().getName().get(-1).toEscapedString());
+//                    long frameNum = Long.parseLong(interestQueue.peek().getName().get(-1).toEscapedString());
                     frameResCache.remove(interestQueue.poll())
-                    putH264Data(content!!.immutableArray, frameNum)
+                    val uniframe = content.immutableArray
+                    val frame_delimiter = byteArrayOf(0, 0, 0, 1)
+                    // Log.d(TAG, "DecodeThread: parse Uniframe----------: "+ bytesToHex(uniframe));
+                    var newBuf = ByteArray(lastframe.size + uniframe.size)
+                    System.arraycopy(lastframe, 0, newBuf, 0, lastframe.size)
+                    System.arraycopy(uniframe, 0, newBuf, lastframe.size, uniframe.size)
+                    val framelist = splitUniframe(newBuf, frame_delimiter)
+                    for (i in 0 until framelist.size - 1) {
+                        // Log.d(TAG, "DecodeThread: parse Uniframe length: " + framelist.get(i).length+" as: "+ bytesToHex(framelist.get(i)));
+
+                        // Check frame type
+                        val type = (framelist[i][4] and 0x1f).toInt()
+                        // Log.d(TAG, "DecodeThread: parse Uniframe type: " + type);
+                        if (type == NAL_SPS) {
+                            sps_info = framelist[i]
+                            start_flag = true
+                        } else if (type == NAL_PPS) {
+                            pps_info = framelist[i]
+                        } else if (type == NAL_SLICE_IDR) {
+                            newBuf = ByteArray(sps_info.size + pps_info.size + framelist[i].size)
+                            System.arraycopy(sps_info, 0, newBuf, 0, sps_info.size)
+                            System.arraycopy(pps_info, 0, newBuf, sps_info.size, pps_info.size)
+                            System.arraycopy(
+                                framelist[i],
+                                0,
+                                newBuf,
+                                sps_info.size + pps_info.size,
+                                framelist[i].size
+                            )
+                            putH264Data(newBuf)
+                        } else if (type == NAL_SLICE) {
+                            putH264Data(framelist[i])
+                        }
+                    }
+                    lastframe = framelist[framelist.size - 1]
+
+//                    putH264Data(content.getImmutableArray());
 //                    onFrame(content.getImmutableArray(), 0, content.getImmutableArray().length);
                 } else {
                     if (lastInterest === interestQueue.peek()) {
-//                        Log.d(TAG, "DecodeThread: Interest stuck error:"+lastInterest.getName().toString()+"; counter: "+repeatInterestCounter);
+                        // If the interest at the head keep the same for several rounds, it may be lost and trigger the retrnasmission
+                        // Log.d(TAG, "DecodeThread: Interest stuck error:"+lastInterest.getName().toString()+"; counter: "+repeatInterestCounter);
                         repeatInterestCounter++
-                        if (repeatInterestCounter > 4) {
-//                            Log.d(TAG, "DecodeThread: error detected, Retransmit:"+lastInterest.getName().toString()+"; counter: "+repeatInterestCounter);
+                        if (repeatInterestCounter > 1) {
+                            // Log.d(TAG, "DecodeThread: error detected, Retransmit:"+lastInterest.getName().toString()+"; counter: "+repeatInterestCounter);
                             retranInterestQueue.add(lastInterest)
-                            repeatInterestCounter = -10
+                            repeatInterestCounter = -5
                         }
                     } else if (interestQueue.peek() != null) {
                         lastInterest = interestQueue.peek()
@@ -323,7 +347,7 @@ class NdnMediaPlayer(
                 }
                 try {
                     sleep(20)
-                } catch (e: Exception) {
+                } catch (e: java.lang.Exception) {
                     Log.e(TAG, "exception: " + e.message)
                     e.printStackTrace()
                 }
@@ -336,20 +360,21 @@ class NdnMediaPlayer(
     }
 
 
-    private inner class MetadataResutls : OnData, OnTimeout, OnRegisterFailed {
-        override fun onData(interest: Interest, data: Data) {
+    private class MetadataResutls : OnData, OnTimeout, OnRegisterFailed {
+        override fun onData(interest: Interest?, data: Data) {
             Log.i(TAG, "Got data packet with name " + data.name.toUri())
             val name = data.name.toUri()
             Log.i(TAG, "Got data packet with Content " + data.content)
-            val metaInfoName = Name(producerName + "/1080p/metadata")
+            val metaInfoName = Name("$producerName/1080p/metadata")
             if (metaInfoName.isPrefixOf(data.name)) {
                 latestFrameName = Name(data.content.toString())
-                val tmpiframeIndex = latestFrameName!![-1].toNumber() % 30
-                if (tmpiframeIndex != iframeIndex) {
-                    iframeIndex = tmpiframeIndex
-                    frameNum = latestFrameName!![-1].toNumber()
-                    Log.d(TAG, "onMetaData: Re-sync I-index")
-                }
+                // The Uniframe may not maintain the 30 frames interval for I frames, thus comment
+//                long tmpIframeIndex = latestFrameName.get(-1).toNumber() % 30;
+//                if (tmpIframeIndex != IframeIndex){
+//                    Log.d(TAG, "onMetaData: Re-sync I-index "+IframeIndex + " to "+tmpIframeIndex);
+//                    IframeIndex = tmpIframeIndex;
+//                    frameNum = latestFrameName.get(-1).toNumber();
+//                }
             }
         }
 
@@ -362,37 +387,85 @@ class NdnMediaPlayer(
         }
     }
 
-//    private inner class YoloResutls : OnData, OnTimeout, OnRegisterFailed {
-//        override fun onData(interest: Interest, data: Data) {
-//            val screenWidth = resultView!!.width.toFloat()
-//            val screenHeight = resultView!!.height.toFloat()
-//            //            Log.d(TAG, "Screen Width and Height: "+screenWidth + " " + screenHeight);
-//            Log.i(TAG, "Got data packet with name " + data.name.toUri())
-//            try {
-//                val results = JSONArray(data.content.toString())
-//                DrawYoloRect(results, screenWidth, screenHeight)
-//            } catch (e: Exception) {
-//                e.printStackTrace()
-//            }
-//            //            Log.i(TAG, "Got data packet with Content " + data.getContent());
-//        }
-//
-//        override fun onTimeout(interest: Interest) {
-//            Log.i(TAG, "Time out for interest " + interest.name.toUri())
-//        }
-//
-//        override fun onRegisterFailed(name: Name) {
-//            Log.i(TAG, "onRegisterFailed for interest " + name.toUri())
-//        }
-//    }
+    @Throws(java.lang.Exception::class)
+    fun ribRegisterPrefix(
+        prefix: Name?,
+        faceId: Int,
+        cost: Int,
+        isChildInherit: Boolean,
+        isCapture: Boolean
+    ) {
+        Log.d(TAG, "ribRegisterPrefix: Launched")
+        val flags = ForwardingFlags()
+        flags.childInherit = isChildInherit
+        flags.capture = isCapture
+        Nfdc.register(
+            face,
+            ControlParameters()
+                .setName(prefix)
+                .setFaceId(faceId)
+                .setCost(cost)
+                .setForwardingFlags(flags)
+        )
+    }
+
 
     private inner class FrameThread : Thread() {
         override fun run() {
             try {
+                // Automatic add the NFD faces and routes
+                try {
+//                    Log.i(TAG, "Nfdc.getFaceList" + Nfdc.getFaceList(face));
+                    val keyChain = KeyChain("pib-memory:", "tpm-memory:")
+                    keyChain.importSafeBag(
+                        SafeBag(
+                            Name("/testname/KEY/123"),
+                            Blob(DEFAULT_RSA_PRIVATE_KEY_DER, false),
+                            Blob(DEFAULT_RSA_PUBLIC_KEY_DER, false)
+                        )
+                    )
+                    face?.setCommandSigningInfo(keyChain, keyChain.defaultCertificateName)
+                    var producerUri = "udp4://192.168.1.192:6363"
+                    if (producerName.equals("/testecho")) {
+                        producerUri = "udp4://192.168.1.100:6363"
+                    } else if (producerName.equals("/edge")) {
+                        producerUri = "udp4://192.168.1.192:6363"
+                    }
+                    var faceId: Int =
+                        Nfdc.createFace(face, FaceUri(producerUri).canonize().toString())
+                    Log.d(TAG, "Nfdc.createFace: $faceId")
+                    val mcastAddress = "udp4://224.5.0.2:50002"
+                    val mcast_flag = false
+                    if (mcast_flag) {
+                        val unregisteredName = Name(producerName)
+                        Nfdc.unregister(
+                            face,
+                            ControlParameters().setName(unregisteredName).setFaceId(faceId)
+                        )
+                        //                        ribRegisterPrefix(new Name(producerName+"/1080p/frame/I"), faceId, 10, true, false);
+//                        ribRegisterPrefix(new Name(producerName+"/1080p/metadata"), faceId, 10, true, false);
+//                        faceId = Nfdc.createFace(face, new FaceUri(mcastAddress).canonize().toString());
+//                        ribRegisterPrefix(new Name(producerName+"/1080p/frame/P"), faceId, 10, true, false);
+                        faceId = Nfdc.createFace(face, FaceUri(mcastAddress).canonize().toString())
+                        ribRegisterPrefix(Name(producerName), faceId, 10, true, false)
+                    } else {
+//                        Nfdc.unregister(face, new ControlParameters().setName(new Name(producerName+"/1080p/frame/I")).setFaceId(faceId));
+//                        Nfdc.unregister(face, new ControlParameters().setName(new Name(producerName+"/1080p/metadata")).setFaceId(faceId));
+                        val McastfaceId: Int =
+                            Nfdc.createFace(face, FaceUri(mcastAddress).canonize().toString())
+                        Nfdc.unregister(
+                            face,
+                            ControlParameters().setName(Name(producerName)).setFaceId(McastfaceId)
+                        )
+                        ribRegisterPrefix(Name(producerName), faceId, 10, true, false)
+                    }
+                } catch (e: java.lang.Exception) {
+                    e.printStackTrace()
+                }
+
                 // ===============Retrieve Frame========================
                 val holCounter = AtomicLong(System.currentTimeMillis())
-                val holInterest = AtomicReference<Interest?>()
-//                val yoloResutls: YoloResutls = YoloResutls()
+                val holInterest = AtomicReference<Interest>()
                 val keyChain = KeyChain("pib-memory:", "tpm-memory:")
                 keyChain.importSafeBag(
                     SafeBag(
@@ -401,17 +474,17 @@ class NdnMediaPlayer(
                         Blob(DEFAULT_RSA_PUBLIC_KEY_DER, false)
                     )
                 )
-                val metadataResutls: MetadataResutls = MetadataResutls()
+                val metadataResutls = MetadataResutls()
                 val baseFrameName = "$producerName/1080p/frame"
                 val options = SegmentFetcher.Options()
                 val maxTimeOut = 10000
                 options.maxTimeout = maxTimeOut
                 var outstandingCounter: Long = 0
-                while (true) {
+                while (keeprun_flag) {
+//                    Log.i(TAG, "Nfdc.getFibList" + Nfdc.getFibList(face));
                     while (latestFrameName == null) {
-                        val metadataName = Name("$producerName/1080p/metadata").appendTimestamp(
-                            System.currentTimeMillis()
-                        )
+                        val metadataName =
+                            Name("$producerName/1080p/metadata").appendTimestamp(System.currentTimeMillis())
                         face!!.expressInterest(metadataName, metadataResutls, metadataResutls)
                         face!!.processEvents()
                         // We need to sleep for a few milliseconds so we don't use 100% of the CPU.
@@ -419,27 +492,29 @@ class NdnMediaPlayer(
                     }
                     frameNum = latestFrameName!![-1].toNumber()
                     Log.d(TAG, "Latest I frameNum: $frameNum")
-                    while (latestFrameName != null) {
-                        while (retranInterestQueue.peek() != null) {
+                    while (latestFrameName != null && keeprun_flag) {
+                        while (retranInterestQueue.peek() != null && keeprun_flag) {
                             Log.d(
-                                TAG, "Send Retransmission interest:" + retranInterestQueue.peek()!!
-                                    .name.toString()
+                                TAG,
+                                "Send Retransmission interest:" + retranInterestQueue.peek()!!
+                                    .getName().toString()
                             )
-                            SegmentFetcher.fetch(face,
+                            SegmentFetcher.fetch(
+                                face,
                                 retranInterestQueue.poll(),
                                 options,
                                 keyChain,
-                                { content: Blob, baseinterest: Interest , dataName->
+                                { content, baseinterest, dataName ->
 //                            Log.v(TAG, "Receive Blob Size:" + content.size());
                                     Log.v(
                                         TAG,
-                                        "Receive Blob Retrans Name:" + baseinterest.name + "; Size: " + content.size()
+                                        "Receive Blob Retrans Name:" + dataName.toString()
+                                            .toString() + "; Size: " + content.size()
                                     )
                                     if (frameResCache.containsKey(baseinterest)) {
                                         frameResCache.replace(baseinterest, content)
                                     }
-                                }
-                            ) { errorCode: SegmentFetcher.ErrorCode?, message: String ->
+                                }) { errorCode, message ->
                                 Log.d(
                                     TAG,
                                     "Retransmission Receive Blob error:$message"
@@ -447,66 +522,76 @@ class NdnMediaPlayer(
                             }
                         }
                         if (fastSyncFlag) {
-                            val metadataName =
-                                Name("$producerName/1080p/metadata").appendTimestamp(
-                                    System.currentTimeMillis()
-                                )
+                            val metadataName = Name("$producerName/1080p/metadata").appendTimestamp(
+                                System.currentTimeMillis()
+                            )
                             Log.v(TAG, "Express interest (fast sync) " + metadataName.toUri())
-                            face!!.expressInterest(metadataName, metadataResutls, metadataResutls)
+                            face?.expressInterest(metadataName, metadataResutls, metadataResutls)
                             fastSyncFlag = false
                         }
                         val frameName = Name(baseFrameName)
-                        if (frameNum % 30 == iframeIndex) {
-                            frameName.append("I")
+                        if (frameNum % 30 === iframeIndex) {
+//                            frameName.append("I");
+                            val metadataName =
+                                Name("$producerName/1080p/metadata").appendTimestamp(System.currentTimeMillis())
+                            Log.v(
+                                TAG,
+                                "Express Outstanding metadata interest ------------" + metadataName.toUri()
+                            )
+                            face!!.expressInterest(metadataName, metadataResutls, metadataResutls)
+                            face!!.processEvents()
                         } else {
-                            frameName.append("P")
+//                            frameName.append("P");
                         }
-                        frameName.append(frameNum.toString())
+                        frameName.append(java.lang.String.valueOf(frameNum))
                         // ============Handle Retransmission by jNDN============================
                         if (interestQueue.size <= 50) {
+                            val latestFrameNum = latestFrameName!![-1].toNumber()
+                            Log.d(
+                                TAG,
+                                "MetaData Check: The latest frame Num: $latestFrameNum curr_interest Num: $frameNum"
+                            )
+
+                            // If the latest frame number from the metadata interest exceed the current frame number,
+                            // the current client is dragged and need to chase the latest frame
+                            if (latestFrameNum > frameNum) {
+                                Log.d(
+                                    TAG,
+                                    "===============================MetaData Check: The latest frame Num: $latestFrameNum curr_interest Num: $frameNum"
+                                )
+                                frameNum = latestFrameNum + 30
+
+//                                H264Queue.clear();
+//                                retranInterestQueue.clear();
+//                                interestQueue.clear();
+                            }
                             Log.v(TAG, "Express interest " + frameName.toUri())
                             val interest = Interest(frameName)
                             interest.interestLifetimeMilliseconds = maxTimeOut.toDouble()
                             interestQueue.add(interest)
-                            frameResCache[interest] = null
-                            SegmentFetcher.fetch(face, interest, options, keyChain,
-                                { content: Blob, baseinterest: Interest, dataName ->
-                                    //                            Log.v(TAG, "Receive Blob Size:" + content.size());
+                            frameResCache.put(interest, null)
+                            SegmentFetcher.fetch(
+                                face,
+                                interest,
+                                options,
+                                keyChain,
+                                { content, baseinterest, dataName ->
+//                            Log.v(TAG, "Receive Blob Size:" + content.size());
                                     Log.v(
                                         TAG,
-                                        "Receive Blob Name:" + baseinterest.name + "; Size: " + content.size()
+                                        "Receive Blob Name:" + dataName.toString()
+                                            .toString() + "; Size: " + content.size()
                                     )
+                                    //                                Log.v(TAG, "Receive Data Name:" + dataName.toString() + "; Size: " + content.size());
                                     if (frameResCache.containsKey(baseinterest)) {
                                         frameResCache.replace(baseinterest, content)
                                     }
                                     outOfSyncCounter = 0
-                                }
-                            ) { errorCode: SegmentFetcher.ErrorCode?, message: String ->
-                                Log.d(
-                                    TAG,
-                                    "Receive Blob error:$message"
-                                )
+                                }) { errorCode, message ->
+                                Log.d(TAG, "Receive Blob error:$message")
                                 fastSyncFlag = true
-                                outOfSyncCounter++
-                                if (outOfSyncCounter > 10) {
-                                    Log.d(
-                                        TAG,
-                                        "Out of Sync, Resend metadata interest!"
-                                    )
-                                    interestQueue.clear()
-                                    frameResCache.clear()
-                                    latestFrameName = null
-                                }
                             }
 
-//                            // Fetch Yolo Results
-//                            String yoloResultsName = "/edge/yolo/result/"+ (frameNum-80);
-//                            Interest yoloInterest = new Interest(yoloResultsName);
-//                            yoloInterest.setCanBePrefix(true);
-//                            yoloInterest.setMustBeFresh(true);
-//                            yoloInterest.setInterestLifetimeMilliseconds(5000);
-//                            Log.v(TAG, "Express Yolo results name " + name.toUri());
-//                            face.expressInterest(yoloInterest, yoloResutls, yoloResutls);
                             frameNum++
                         } else {
                             // Send a metadata to sync every 10 outstanding Rounds
@@ -525,7 +610,6 @@ class NdnMediaPlayer(
                                     metadataResutls
                                 )
                                 face!!.processEvents()
-                                //                                Thread.sleep(50);
                             }
                             outstandingCounter++
                         }
@@ -533,8 +617,9 @@ class NdnMediaPlayer(
                         // Process the head-of line blocking, if the same head interest stay for more than 10 round, discard it
                         if (interestQueue.peek() === holInterest.get() && System.currentTimeMillis() - holCounter.get() > 1000) {
                             Log.d(
-                                TAG, "error: Cannot Receive This frame:" + interestQueue.peek()!!
-                                    .name.toString()
+                                TAG,
+                                "error: Cannot Receive This frame:" + interestQueue.peek().getName()
+                                    .toString()
                             )
                             frameResCache.remove(interestQueue.poll())
                             holInterest.set(interestQueue.peek())
@@ -553,7 +638,7 @@ class NdnMediaPlayer(
                     }
                 }
 
-            } catch (e: Exception) {
+            } catch (e: java.lang.Exception) {
                 Log.e(TAG, "exception: " + e.message)
                 e.printStackTrace()
             }
@@ -563,8 +648,8 @@ class NdnMediaPlayer(
     companion object {
         private const val TAG = "H264Client"
         private const val MIME_TYPE = "video/avc"
-        private const val VIDEO_WIDTH = 1280
-        private const val VIDEO_HEIGHT = 720
+        private const val VIDEO_WIDTH = 1920
+        private const val VIDEO_HEIGHT = 1080
         private var outOfSyncCounter: Long = 0
         private var fastSyncFlag = true
         private var latestFrameName: Name? = null
@@ -573,6 +658,7 @@ class NdnMediaPlayer(
         private var jitterSlow: Long = 0
         private var interestInterval: Long = 0
         private var frameNum: Long = 1
+        private val keeprun_flag = true
         private val DEFAULT_RSA_PUBLIC_KEY_DER = toBuffer(
             intArrayOf(
                 0x30,

@@ -330,7 +330,7 @@ public class FullPSync2017 extends PSyncProducerBase
     SegmentFetcher.fetch
       (face_, syncInterest, SegmentFetcher.DontVerifySegment,
        new SegmentFetcher.OnComplete() {
-         public void onComplete(Blob content, Interest interest) {
+         public void onComplete(Blob content, Interest interest, Name dataName) {
            onSyncData(content, syncInterest);
          }
        },

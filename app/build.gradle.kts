@@ -63,6 +63,7 @@ dependencies {
     implementation(Google.Ar.sceneform.sceneformBase)
     implementation(Google.Ar.sceneform.ux)
     implementation(Google.Ar.sceneform.animation)
+    implementation("net.named-data.jndn-extra:jndn-xx-util:0.0.3")
 
     testImplementation(Testing.junit4)
 

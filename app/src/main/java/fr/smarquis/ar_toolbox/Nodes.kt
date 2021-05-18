@@ -1146,8 +1146,8 @@ class NdnVideo(
 ) : Nodes("NdnVideo", coordinator, settings) {
 
     private val texture = ExternalTexture()
-    private var ndnMediaPlayer: NdnMediaPlayer? = null
-    private val disableChromaKey = false
+    private var ndnMediaPlayer: NdnMediaPlayer2? = null
+    private val enableChromaKey = true
 
     /* Use a child node to keep the video dimensions independent of scaling */
     private val ndnVideo: Node = Node().apply { setParent(this@NdnVideo) }
@@ -1158,7 +1158,7 @@ class NdnVideo(
             .build()
             .thenAccept {
                 it.material.setExternalTexture("videoTexture", texture)
-                if (disableChromaKey) {
+                if (enableChromaKey) {
                     // Green screen
                     it.material.setFloat4("keyColor", Color(0.1843f, 1.0f, 0.098f))
                 } else {
@@ -1169,8 +1169,8 @@ class NdnVideo(
     }
 
     override fun onActivate() {
-        val width = 1280
-        val height = 720
+        val width = 1920
+        val height = 1080
 
         ndnVideo.localScale = when {
             width > height -> Vector3(1F, height / width.toFloat(), 1F)
@@ -1178,7 +1178,7 @@ class NdnVideo(
             else -> Vector3.one()
         }
 
-        ndnMediaPlayer = NdnMediaPlayer(context, texture.surface)
+        ndnMediaPlayer = NdnMediaPlayer2(context, texture.surface)
     }
 
     fun isPlaying(): Boolean = ndnMediaPlayer?.isPlaying ?: false

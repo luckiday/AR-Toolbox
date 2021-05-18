@@ -109,6 +109,8 @@ import net.named_data.jndn.security.v2.*;
  */
 public class SegmentFetcher implements OnData, OnDataValidationFailed, OnTimeout, OnNetworkNack {
 
+    public Name dataName;
+
     public static class Options {
 
         /** if true, window size is kept at `initCwnd`
@@ -190,7 +192,7 @@ public class SegmentFetcher implements OnData, OnDataValidationFailed, OnTimeout
     }
 
     public interface OnComplete {
-        void onComplete(Blob content, Interest interest);
+        void onComplete(Blob content, Interest interest, Name dataName);
     }
 
     public interface VerifySegment {
@@ -579,7 +581,7 @@ public class SegmentFetcher implements OnData, OnDataValidationFailed, OnTimeout
         clean();
 
         try {
-            onComplete_.onComplete(new Blob(content, false), baseInterest_);
+            onComplete_.onComplete(new Blob(content, false), baseInterest_, dataName);
         } catch (Throwable ex) {
             logger_.log(Level.SEVERE, "Error in onComplete", ex);
         }
@@ -710,7 +712,8 @@ public class SegmentFetcher implements OnData, OnDataValidationFailed, OnTimeout
             receivedSegments_.put(segmentNum, data.getContent());
 
             if (receivedSegments_.size() == 1) {
-                versionedDataName_ = data.getName();
+//                versionedDataName_ = data.getName();
+                dataName = data.getName();
 //                Log.d("SegmetnFetcher", "onVerified: versionedDataName_: "+versionedDataName_.toString());
 //                if (segmentNum == 0) {
 //                    // We received the first segment in response, so we can increment the next segment number
