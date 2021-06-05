@@ -167,7 +167,7 @@ class SceneActivity : ArActivity<ActivitySceneBinding>(ActivitySceneBinding::inf
                 measure.isSelected = it == Measure::class
                 view.isSelected = it == Layout::class
                 andy.isSelected = it == Andy::class
-                video.isSelected = it == NdnVideo::class
+                video.isSelected = it == MultiViewVideo::class
                 drawing.isSelected = it == Drawing::class
                 link.isSelected = it == Link::class
                 cloudAnchor.isSelected = it == CloudAnchor::class
@@ -183,7 +183,7 @@ class SceneActivity : ArActivity<ActivitySceneBinding>(ActivitySceneBinding::inf
             drawing.setOnClickListener { model.selection.value = Drawing::class }
             measure.setOnClickListener { model.selection.value = Measure::class }
             andy.setOnClickListener { model.selection.value = Andy::class }
-            video.setOnClickListener { model.selection.value = NdnVideo::class }
+            video.setOnClickListener { model.selection.value = MultiViewVideo::class }
             link.setOnClickListener { promptExternalModel() }
             cloudAnchor.setOnClickListener { model.selection.value = CloudAnchor::class }
             colorValue.setOnColorChangeListener { color ->
@@ -213,7 +213,7 @@ class SceneActivity : ArActivity<ActivitySceneBinding>(ActivitySceneBinding::inf
         header.apply {
             root.setOnClickListener { coordinator.selectNode(null) }
             copy.setOnClickListener { (coordinator.focusedNode as? CloudAnchor)?.copyToClipboard(this@SceneActivity) }
-            playPause.setOnClickListener { (coordinator.focusedNode as? NdnVideo)?.toggle() }
+            playPause.setOnClickListener { (coordinator.focusedNode as? MultiViewVideo)?.toggle() }
             delete.setOnClickListener { coordinator.focusedNode?.detach() }
             undo.setOnClickListener { (coordinator.focusedNode as? Measure)?.undo() }
         }
@@ -354,7 +354,7 @@ class SceneActivity : ArActivity<ActivitySceneBinding>(ActivitySceneBinding::inf
             Cube::class -> Cube(this, materialProperties(), coordinator, settings)
             Layout::class -> Layout(this, coordinator, settings)
             Andy::class -> Andy(this, coordinator, settings)
-            NdnVideo::class -> NdnVideo(this, coordinator, settings)
+            MultiViewVideo::class -> MultiViewVideo(this, coordinator, settings)
             Measure::class -> Measure(this, materialProperties(), coordinator, settings)
             Link::class -> Link(this, model.externalModelUri.value.orEmpty().toUri(), coordinator, settings)
             CloudAnchor::class -> CloudAnchor(this, arSceneView.session ?: return, coordinator, settings)
@@ -452,7 +452,7 @@ class SceneActivity : ArActivity<ActivitySceneBinding>(ActivitySceneBinding::inf
                     status.setImageResource(node.statusIcon())
                     distance.text = arSceneView.arFrame?.camera.formatDistance(this@SceneActivity, node)
                     copy.isEnabled = (node as? CloudAnchor)?.id() != null
-                    playPause.isActivated = (node as? NdnVideo)?.isPlaying() == true
+                    playPause.isActivated = (node as? MultiViewVideo)?.isPlaying() == true
                     delete.isEnabled = !node.isTransforming
                 }
                 with(body) {
@@ -487,7 +487,7 @@ class SceneActivity : ArActivity<ActivitySceneBinding>(ActivitySceneBinding::inf
                 with(bottomSheetNode.header) {
                     name.text = node.name
                     copy.visibility = if (node is CloudAnchor) VISIBLE else GONE
-                    playPause.visibility = if (node is NdnVideo) VISIBLE else GONE
+                    playPause.visibility = if (node is MultiViewVideo) VISIBLE else GONE
                 }
                 with(bottomSheetNode.body) {
                     (node as? MaterialNode)?.properties?.let {

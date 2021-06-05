@@ -1191,3 +1191,57 @@ class NdnVideo(
     }
 }
 
+class MultiViewVideo(
+    val context: Context,
+    coordinator: Coordinator,
+    settings: Settings
+) : Nodes("MultiViewVideo", coordinator, settings), Nodes.FacingCamera {
+
+    private val texture = ExternalTexture()
+    private var ndnMediaPlayer: NdnMediaPlayer3? = null
+    private val enableChromaKey = true
+    /* Use a child node to keep the video dimensions independent of scaling */
+    private val multiViewVideo: Node = Node().apply { setParent(this@MultiViewVideo) }
+
+    init {
+        ModelRenderable.builder()
+            .setSource(context.applicationContext, R.raw.chroma_key_video)
+            .build()
+            .thenAccept {
+                it.material.setExternalTexture("videoTexture", texture)
+                if (enableChromaKey) {
+                    // Green screen
+                    it.material.setFloat4("keyColor", Color(0.1843f, 1.0f, 0.098f))
+                } else {
+                    it.material.setBoolean("disableChromaKey", true)
+                }
+                multiViewVideo.renderable = it
+            }
+    }
+
+    override fun onActivate() {
+        val width = 1920
+        val height = 1080
+
+        multiViewVideo.localScale = when {
+            width > height -> Vector3(1F, height / width.toFloat(), 1F)
+            width < height -> Vector3(width / height.toFloat(), 1F, 1F)
+            else -> Vector3.one()
+        }
+
+        ndnMediaPlayer = NdnMediaPlayer3(context, texture.surface, this@MultiViewVideo)
+    }
+
+    fun isPlaying(): Boolean = ndnMediaPlayer?.isPlaying ?: false
+
+    fun toggle() {
+        ndnMediaPlayer?.let {
+            if (it.isPlaying) it.pause() else it.start()
+        }
+    }
+
+    override fun onDeactivate() {
+        ndnMediaPlayer?.onDestroy()
+        ndnMediaPlayer = null
+    }
+}
