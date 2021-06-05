@@ -1067,8 +1067,6 @@ class Video(
     override fun onActivate() {
         val source = "NDN"
         val url = "https://www.rmp-streaming.com/media/big-buck-bunny-720p.mp4"
-//        val url = "http://192.168.0.7:62222/stream-server-yolo/NDN-server/chroma-key-video/big-buck-bunny-720p.mp4"
-//        val url = "http://192.168.0.7:62222/stream-server-yolo/NDN-server/chroma-key-video/demo.mp4"
         mediaPlayer = when (source) {
             "Tiger" ->  MediaPlayer.create(context.applicationContext, R.raw.video).apply {
                 isLooping = true
@@ -1143,15 +1141,13 @@ class NdnVideo(
     val context: Context,
     coordinator: Coordinator,
     settings: Settings
-) : Nodes("NdnVideo", coordinator, settings) {
+) : Nodes("NdnVideo", coordinator, settings), Nodes.FacingCamera {
 
     private val texture = ExternalTexture()
     private var ndnMediaPlayer: NdnMediaPlayer2? = null
     private val enableChromaKey = true
-
     /* Use a child node to keep the video dimensions independent of scaling */
     private val ndnVideo: Node = Node().apply { setParent(this@NdnVideo) }
-
     init {
         ModelRenderable.builder()
             .setSource(context.applicationContext, R.raw.chroma_key_video)
